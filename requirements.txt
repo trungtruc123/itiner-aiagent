@@ -1,0 +1,47 @@
+# Core
+fastapi[standard]==0.115.6
+uvicorn[standard]==0.34.0
+pydantic==2.10.4
+pydantic-settings==2.7.1
+
+# LangGraph & LangChain
+langgraph==0.2.60
+langchain==0.3.14
+langchain-openai==0.3.0
+langchain-community==0.3.14
+langchain-core==0.3.29
+
+# Observability
+langfuse==2.57.2
+prometheus-client==0.21.1
+
+# Database & Memory
+sqlmodel==0.0.22
+asyncpg==0.30.0
+psycopg[binary]==3.2.4
+langgraph-checkpoint-postgres==2.0.12
+mem0ai==0.1.42
+pgvector==0.3.6
+neo4j==5.27.0
+redis==5.2.1
+
+# Auth & Security
+python-jose[cryptography]==3.3.0
+passlib[bcrypt]==1.7.4
+python-multipart==0.0.20
+
+# Rate Limiting
+slowapi==0.1.9
+
+# Logging & CLI
+structlog==24.4.0
+rich==13.9.4
+
+# Retry
+tenacity==9.0.0
+
+# HTTP
+httpx==0.28.1
+
+# Environment
+python-dotenv==1.0.1
