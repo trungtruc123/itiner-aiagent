@@ -12,6 +12,9 @@ logger = structlog.get_logger(__name__)
 
 
 class RequestContextMiddleware(BaseHTTPMiddleware):
+    '''
+    Middleware to add request context to each request.
+    '''
     async def dispatch(self, request: Request, call_next: RequestResponseEndpoint) -> Response:
         request_id = str(uuid.uuid4())
         structlog.contextvars.clear_contextvars()
@@ -24,7 +27,7 @@ class RequestContextMiddleware(BaseHTTPMiddleware):
         start_time = time.perf_counter()
 
         try:
-            response = await call_next(request)
+            response = await call_next(request) #chuyển tiếp request để tính duration
             duration = time.perf_counter() - start_time
 
             REQUEST_COUNT.labels(
@@ -37,7 +40,7 @@ class RequestContextMiddleware(BaseHTTPMiddleware):
                 endpoint=request.url.path,
             ).observe(duration)
 
-            response.headers["X-Request-ID"] = request_id
+            response.headers["X-Request-ID"] = request_id # Add headers request ID to response
             response.headers["X-Process-Time"] = f"{duration:.4f}"
 
             logger.info(
