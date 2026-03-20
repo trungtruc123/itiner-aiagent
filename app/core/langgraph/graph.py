@@ -1,4 +1,6 @@
 import json
+import logging
+import os
 from typing import Any, Dict, Literal, Optional
 
 import structlog
@@ -70,34 +72,53 @@ async def agent_node(state: TravelAgentState) -> Dict[str, Any]:
 
     messages = [SystemMessage(content=system_prompt)] + list(state.messages)
 
-    # Log all input messages to LLM
-    logger.info(
-        "llm_input_messages",
-        session_id=state.session_id,
-        user_id=state.user_id,
-        message_count=len(messages),
-        messages=[
-            {"role": type(msg).__name__, "content": msg.content[:500]}
-            for msg in messages
-        ],
-    )
-
     response = await llm_with_tools.ainvoke(
         messages,
         config={"callbacks": [langfuse_handler]},
     )
 
+    # Log input messages to file
+    os.makedirs("./monitor", exist_ok=True)
+    file_logger = logging.getLogger("input_log")
+    file_logger.setLevel(logging.INFO)
+    if not file_logger.handlers:
+        file_handler = logging.FileHandler("./monitor/input_log.log")
+        file_handler.setFormatter(logging.Formatter('%(asctime)s - %(message)s'))
+        file_logger.addHandler(file_handler)
+
+    file_logger.info(
+        json.dumps({
+            "session_id": state.session_id,
+            "user_id": state.user_id,
+            "message_count": len(messages),
+            "messages": [
+                {"role": type(msg).__name__, "content": msg.content}
+                for msg in messages
+            ],
+        }, indent=2)
+    )
+
     # Log LLM output message
-    logger.info(
-        "llm_output_message",
-        session_id=state.session_id,
-        user_id=state.user_id,
-        role=type(response).__name__,
-        content=response.content[:500] if response.content else "",
-        tool_calls=[
-            {"name": tc["name"], "args": tc["args"]}
-            for tc in (response.tool_calls or [])
-        ],
+    output_logger = logging.getLogger("output_log")
+    output_logger.setLevel(logging.INFO)
+    if not output_logger.handlers:
+        output_handler = logging.FileHandler("./monitor/out_log.log")
+        output_handler.setFormatter(logging.Formatter('%(asctime)s - %(message)s'))
+        output_logger.addHandler(output_handler)
+
+    output_logger.info(
+        json.dumps({
+            "session_id": state.session_id,
+            "user_id": state.user_id,
+            "response": {
+                "role": type(response).__name__,
+                "content": response.content,
+                "tool_calls": [
+                    {"name": tc.get("name"), "args": tc.get("args")}
+                    for tc in (response.tool_calls if hasattr(response, 'tool_calls') and response.tool_calls else [])
+                ]
+            }
+        }, indent=2)
     )
 
     AGENT_STEP_COUNT.labels(step_name="agent_node", status="completed").inc()
@@ -306,7 +327,7 @@ def after_tools(state: TravelAgentState) -> Literal["check_booking"]:
 
 
 def after_booking_check(
-    state: TravelAgentState,
+        state: TravelAgentState,
 ) -> Literal["human_confirmation", "agent"]:
     """Route based on whether booking confirmation is needed."""
     if state.requires_human_confirmation:
@@ -315,7 +336,7 @@ def after_booking_check(
 
 
 def after_human_input(
-    state: TravelAgentState,
+        state: TravelAgentState,
 ) -> Literal["process_confirmation", "agent"]:
     """Route based on whether we're processing a confirmation."""
     if state.requires_human_confirmation and state.pending_booking:
@@ -371,7 +392,7 @@ def build_travel_agent_graph() -> StateGraph:
 
 
 async def create_compiled_graph(
-    checkpointer: Optional[AsyncPostgresSaver] = None,
+        checkpointer: Optional[AsyncPostgresSaver] = None,
 ) -> Any:
     """Create and compile the travel agent graph with optional checkpointing."""
     workflow = build_travel_agent_graph()
