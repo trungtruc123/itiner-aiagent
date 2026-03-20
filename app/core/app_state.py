@@ -43,7 +43,10 @@ class AppState:
 
     @property
     def is_healthy(self) -> bool:
-        """Healthy if *all* configured services report healthy."""
+        """
+        Healthy if *all* configured services report healthy.
+        Trả về True khi app ready và tất cả các dịch vụ đều khỏe mạnh hoặc chưa được cấu hình.
+        """
         if not self.is_ready:
             return False
         return all(
@@ -58,6 +61,9 @@ class AppState:
         return time.time() - self.started_at
 
     def to_dict(self) -> dict:
+        """
+        Serialize state thành dict cho health endpoint (phase, uptime, services status)
+        """
         return {
             "phase": self.phase.value,
             "uptime_seconds": round(self.uptime_seconds, 2),
