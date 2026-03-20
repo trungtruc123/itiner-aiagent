@@ -7,7 +7,9 @@ import structlog
 from rich.console import Console
 
 from app.core.config import settings
-
+"""
+Logging config for the application.
+"""
 console = Console()
 
 # Log file path in monitor folder
