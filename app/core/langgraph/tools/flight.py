@@ -114,14 +114,17 @@ async def search_flights(
     arrival_lower = arrival_city.lower()
 
     matched_flights = []
+    # Match flights based on departure and arrival cities
     for flight in MOCK_FLIGHTS:
         dep_match = departure_lower in flight["departure"].lower()
         arr_match = arrival_lower in flight["arrival"].lower()
         if dep_match and arr_match:
             if max_price and flight["price"] > max_price:
+                # Find flights with a reasonable price range
                 continue
             matched_flights.append({**flight, "date": departure_date})
 
+    # Fallback 1: Match flights based on arrival city only
     if not matched_flights:
         for flight in MOCK_FLIGHTS:
             arr_match = arrival_lower in flight["arrival"].lower()
@@ -133,7 +136,7 @@ async def search_flights(
                     "departure": f"{departure_city}",
                     "date": departure_date,
                 })
-
+    # Fallback 2: tạo 2 chuyến bay generic
     if not matched_flights:
         matched_flights = [
             {
