@@ -6,9 +6,12 @@ from pydantic import BaseModel, Field
 
 
 class TravelAgentState(BaseModel):
-    """State schema for the travel planning agent workflow."""
+    """
+    State schema for the travel planning agent workflow.
+    Pydantic model định nghĩa state cho LangGraph workflow:
+    """
 
-    messages: Annotated[Sequence[AnyMessage], add_messages] = Field(default_factory=list)
+    messages: Annotated[Sequence[AnyMessage], add_messages] = Field(default_factory=list) # Chèn tin nhắn mới thay vì ghi đè
     user_id: str = ""
     session_id: str = ""
     memory_context: str = ""
