@@ -21,5 +21,10 @@ class TravelAgentState(BaseModel):
     current_step: str = "agent"
     error: Optional[str] = None
 
+    # Intent classification fields
+    intent: Optional[str] = None  # Classified intent type
+    intent_sub_label: Optional[str] = None  # Sub-label (e.g., "praise"/"criticism" for feeling)
+    intent_response: Optional[str] = None  # Direct response for simple intents (greeting/bye/feeling/not_cover)
+
     class Config:
         arbitrary_types_allowed = True
