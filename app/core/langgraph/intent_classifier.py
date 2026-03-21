@@ -19,7 +19,14 @@ from langchain_openai import ChatOpenAI
 
 from app.core.config import settings
 from app.core.prompts.system import INTENT_CLASSIFICATION_PROMPT
-from app.core.langgraph.constants import *
+from app.core.langgraph.constants import (
+    GREETING_PATTERNS,
+    BYE_PATTERNS,
+    PRAISE_PATTERNS,
+    CRITICISM_PATTERNS,
+    NEGATED_POSITIVE_PATTERNS,
+    NEGATED_NEGATIVE_PATTERNS,
+)
 from app.schemas.intent_class import IntentType
 
 logger = structlog.get_logger(__name__)
@@ -55,6 +62,12 @@ def classify_rule_based(text: str) -> List[Tuple[IntentType, Optional[str]]]:
     Classify intent using regex and keyword matching.
     Returns a list of (intent, sub_label) tuples for all matched intents.
     sub_label is used for feeling: "praise" or "criticism".
+
+    Negation-aware sentiment for Vietnamese:
+      - "chưa giỏi" / "ko tốt"  → negation + positive = criticism
+      - "ko ngu"    / "không gà" → negation + negative = praise
+      - "giỏi quá"               → positive alone      = praise
+      - "ngu quá"                → negative alone       = criticism
     """
     matched = []
 
@@ -64,11 +77,34 @@ def classify_rule_based(text: str) -> List[Tuple[IntentType, Optional[str]]]:
     if _match_patterns(text, BYE_PATTERNS):
         matched.append((IntentType.BYE, None))
 
-    is_praise = _match_patterns(text, PRAISE_PATTERNS)
-    is_criticism = _match_patterns(text, CRITICISM_PATTERNS)
-    if is_praise or is_criticism:
-        sub_label = "praise" if is_praise else "criticism"
-        matched.append((IntentType.FEELING, sub_label))
+    # ── Negation-aware feeling detection ──
+    # Check negated patterns FIRST (they take priority over direct patterns)
+    has_negated_positive = _match_patterns(text, NEGATED_POSITIVE_PATTERNS)  # "chưa giỏi" → criticism
+    has_negated_negative = _match_patterns(text, NEGATED_NEGATIVE_PATTERNS)  # "ko ngu" → praise
+
+    if has_negated_positive or has_negated_negative:
+        # Negation detected — determine sentiment from the negation logic
+        if has_negated_positive and not has_negated_negative:
+            # "chưa giỏi", "ko tốt" → criticism
+            matched.append((IntentType.FEELING, "criticism"))
+        elif has_negated_negative and not has_negated_positive:
+            # "ko ngu", "không gà" → praise
+            matched.append((IntentType.FEELING, "praise"))
+        else:
+            # Both present — mixed signals, default to criticism
+            matched.append((IntentType.FEELING, "criticism"))
+    else:
+        # No negation — use direct pattern matching
+        has_direct_praise = _match_patterns(text, PRAISE_PATTERNS)
+        has_direct_criticism = _match_patterns(text, CRITICISM_PATTERNS)
+
+        if has_direct_criticism and has_direct_praise:
+            # Both matched — criticism takes priority (safer assumption)
+            matched.append((IntentType.FEELING, "criticism"))
+        elif has_direct_criticism:
+            matched.append((IntentType.FEELING, "criticism"))
+        elif has_direct_praise:
+            matched.append((IntentType.FEELING, "praise"))
 
     return matched
 
