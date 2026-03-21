@@ -56,7 +56,7 @@ NEGATED_NEGATIVE_PATTERNS = [
 
 # Direct praise patterns (no negation involved)
 PRAISE_PATTERNS = [
-    r"\b(tuyệt vời|tuyệt|xuất sắc|great|awesome|good job|amazing|perfect|wonderful|cảm ơn|thank|thanks|love it|yêu|thích)\b",
+    r"\b(thông minh|thong minh|tuyệt vời|tuyệt|xuất sắc|great|awesome|good job|amazing|perfect|wonderful|cảm ơn|thank|thanks|love it|yêu|thích)\b",
     r"\b(được quá|bot được quá|bot dc qua|bạn giỏi|bạn tuyệt|rất tốt|rất hay|rất giỏi|quá giỏi|quá hay|quá tốt|quá đỉnh|bot giỏi|giỏi quá|tốt quá|hay quá|xịn quá|đỉnh quá|pro quá)\b",
     r"\b(giỏi|hay|tốt|ngon|đỉnh|xịn|pro|good|nice|cool)\b",
 ]
