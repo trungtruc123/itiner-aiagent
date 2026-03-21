@@ -16,6 +16,8 @@ from __future__ import annotations
 
 import time
 from contextlib import asynccontextmanager
+# Eagerly import openai to avoid _DeadlockError on lazy import in async context
+import openai  # noqa: F401
 
 import structlog
 import uvicorn
