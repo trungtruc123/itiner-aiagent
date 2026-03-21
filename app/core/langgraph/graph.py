@@ -409,8 +409,8 @@ def build_travel_agent_graph() -> StateGraph:
 
     Flow:
         START → memory → classify_intent
-            ├─ (direct_response intents: greeting/bye/feeling/not_cover) → direct_response → save_memory → END
-            └─ (LLM intents: asking_information_user/search_flight/plan_travel) → agent → ...
+            ├─ greeting/bye/feeling/not_cover → direct_response → END  (skip memory, not important)
+            └─ asking_information_user/search_flight/plan_travel → agent → ... → save_memory → END
     """
     workflow = StateGraph(TravelAgentState)
 
@@ -438,8 +438,8 @@ def build_travel_agent_graph() -> StateGraph:
         },
     )
 
-    # Direct response intents skip the agent and go straight to save_memory
-    workflow.add_edge("direct_response", "save_memory")
+    # All direct-response intents (greeting/bye/feeling/not_cover) skip memory → END
+    workflow.add_edge("direct_response", END)
 
     workflow.add_conditional_edges(
         "agent",
