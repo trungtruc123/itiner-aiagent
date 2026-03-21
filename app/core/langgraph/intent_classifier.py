@@ -8,8 +8,9 @@ Classifies user messages into intents using a combination of:
 Priority rules handle multi-intent messages.
 """
 
+import json
 import re
-from enum import Enum
+from pathlib import Path
 from typing import Any, Dict, List, Optional, Tuple
 
 import structlog
@@ -17,12 +18,16 @@ from langchain_core.messages import AIMessage, HumanMessage
 from langchain_openai import ChatOpenAI
 
 from app.core.config import settings
-from app.core.metrics import AGENT_STEP_COUNT
 from app.core.prompts.system import INTENT_CLASSIFICATION_PROMPT
 from app.core.langgraph.constants import *
 from app.schemas.intent_class import IntentType
 
 logger = structlog.get_logger(__name__)
+
+# Load direct responses from JSON file
+_DIRECT_RESPONSES_PATH = Path(__file__).parent.parent.parent / "utter_responses/direct_responses.json"
+with open(_DIRECT_RESPONSES_PATH, "r", encoding="utf-8") as f:
+    DIRECT_RESPONSES: Dict[str, Dict[str, str]] = json.load(f)
 
 # Priority order: higher priority intents override lower ones when multiple are detected
 INTENT_PRIORITY = [
@@ -157,20 +162,14 @@ def generate_direct_response(intent: IntentType, sub_label: Optional[str] = None
     Generate a direct response for intents that don't need LLM processing.
     Returns None if the intent should be handled by the agent.
     """
-    if intent == IntentType.GREETING:
-        return "Xin chào! Tôi là trợ lý du lịch AI. Tôi có thể giúp bạn tìm chuyến bay, đặt khách sạn, gợi ý điểm đến và lên kế hoạch du lịch. Bạn cần tôi giúp gì?"
+    intent_key = intent.name
+    responses = DIRECT_RESPONSES.get(intent_key)
 
-    if intent == IntentType.BYE:
-        return "Tạm biệt! Chúc bạn có chuyến đi vui vẻ. Hẹn gặp lại!"
+    if responses is None:
+        # For ASKING_INFORMATION_USER, SEARCH_FLIGHT, PLAN_TRAVEL → handled by agent
+        return None
 
-    if intent == IntentType.FEELING:
-        if sub_label == "praise":
-            return "Cảm ơn bạn đã khen! Tôi rất vui khi có thể giúp ích cho bạn. Bạn cần tôi hỗ trợ thêm gì không?"
-        else:
-            return "Mình sẽ cố gắng nhiều hơn để hỗ trợ bạn tốt hơn. Bạn có thể cho tôi biết cần giúp gì thêm không?"
+    if sub_label and sub_label in responses:
+        return responses[sub_label]
 
-    if intent == IntentType.NOT_COVER:
-        return "Xin lỗi, câu hỏi này nằm ngoài phạm vi của bot. Tôi chỉ có thể hỗ trợ về du lịch, tìm chuyến bay, đặt khách sạn và gợi ý điểm đến. Bạn cần tôi giúp gì về du lịch không?"
-
-    # For ASKING_INFORMATION_USER, SEARCH_FLIGHT, PLAN_TRAVEL → handled by agent
-    return None
+    return responses.get("default")

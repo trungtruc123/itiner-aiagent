@@ -1,0 +1,15 @@
+{
+  "GREETING": {
+    "default": "Xin chào! Tôi là trợ lý du lịch AI. Tôi có thể giúp bạn tìm chuyến bay, đặt khách sạn, gợi ý điểm đến và lên kế hoạch du lịch. Bạn cần tôi giúp gì?"
+  },
+  "BYE": {
+    "default": "Tạm biệt! Cảm ơn bạn đã trò chuyện với mình. Hẹn gặp lại!"
+  },
+  "FEELING": {
+    "praise": "Cảm ơn bạn đã khen! Tôi rất vui khi có thể giúp ích cho bạn. Bạn cần tôi hỗ trợ thêm gì không?",
+    "default": "Mình sẽ cố gắng nhiều hơn để hỗ trợ bạn tốt hơn. Bạn có thể cho tôi biết cần giúp gì thêm không?"
+  },
+  "NOT_COVER": {
+    "default": "Xin lỗi, câu hỏi này nằm ngoài phạm vi của mình. Tôi chỉ có thể hỗ trợ về du lịch, tìm chuyến bay, đặt khách sạn và gợi ý điểm đến. Bạn cần tôi giúp gì về du lịch không?"
+  }
+}
