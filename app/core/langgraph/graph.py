@@ -11,6 +11,11 @@ from langgraph.graph import END, StateGraph
 from langgraph.prebuilt import ToolNode
 
 from app.core.config import settings
+from app.core.langgraph.intent_classifier import (
+    IntentType,
+    classify_intent,
+    generate_direct_response,
+)
 from app.core.langgraph.state import TravelAgentState
 from app.core.langgraph.tools.activities import recommend_activities
 from app.core.langgraph.tools.destination import get_destination_details, recommend_destinations
@@ -39,6 +44,61 @@ ALL_TOOLS = [
 ]
 
 TOOL_NODE = ToolNode(ALL_TOOLS)
+
+
+async def classify_intent_node(state: TravelAgentState) -> Dict[str, Any]:
+    """Classify user intent using regex/keyword + LLM hybrid approach."""
+    AGENT_STEP_COUNT.labels(step_name="classify_intent", status="started").inc()
+
+    # Extract the last human message
+    last_message = ""
+    for message in reversed(state.messages):
+        if isinstance(message, HumanMessage):
+            last_message = message.content
+            break
+
+    if not last_message:
+        AGENT_STEP_COUNT.labels(step_name="classify_intent", status="completed").inc()
+        return {"intent": IntentType.PLAN_TRAVEL, "intent_sub_label": None, "intent_response": None}
+
+    intent, sub_label = await classify_intent(last_message)
+    direct_response = generate_direct_response(intent, sub_label)
+
+    logger.info(
+        "intent_classified",
+        user_id=state.user_id,
+        session_id=state.session_id,
+        intent=intent.value,
+        sub_label=sub_label,
+        has_direct_response=direct_response is not None,
+    )
+
+    AGENT_STEP_COUNT.labels(step_name="classify_intent", status="completed").inc()
+
+    return {
+        "intent": intent.value,
+        "intent_sub_label": sub_label,
+        "intent_response": direct_response,
+    }
+
+
+async def direct_response_node(state: TravelAgentState) -> Dict[str, Any]:
+    """Return a direct response for simple intents (greeting/bye/feeling/not_cover)."""
+    AGENT_STEP_COUNT.labels(step_name="direct_response", status="started").inc()
+
+    response_text = state.intent_response or "Xin chào! Tôi có thể giúp gì cho bạn?"
+    response = AIMessage(content=response_text)
+
+    AGENT_STEP_COUNT.labels(step_name="direct_response", status="completed").inc()
+
+    return {"messages": [response]}
+
+
+def route_after_intent(state: TravelAgentState) -> Literal["direct_response", "agent"]:
+    """Route based on classified intent. Simple intents go to direct_response, others to agent."""
+    if state.intent_response is not None:
+        return "direct_response"
+    return "agent"
 
 
 async def agent_node(state: TravelAgentState) -> Dict[str, Any]:
@@ -345,10 +405,18 @@ def after_human_input(
 
 
 def build_travel_agent_graph() -> StateGraph:
-    """Build the LangGraph workflow for the travel planning agent."""
+    """Build the LangGraph workflow for the travel planning agent.
+
+    Flow:
+        START → memory → classify_intent
+            ├─ (direct_response intents: greeting/bye/feeling/not_cover) → direct_response → save_memory → END
+            └─ (LLM intents: asking_information_user/search_flight/plan_travel) → agent → ...
+    """
     workflow = StateGraph(TravelAgentState)
 
     workflow.add_node("memory", memory_node)
+    workflow.add_node("classify_intent", classify_intent_node)
+    workflow.add_node("direct_response", direct_response_node)
     workflow.add_node("agent", agent_node)
     workflow.add_node("tools", tool_executor_node)
     workflow.add_node("check_booking", check_booking_node)
@@ -358,7 +426,20 @@ def build_travel_agent_graph() -> StateGraph:
 
     workflow.set_entry_point("memory")
 
-    workflow.add_edge("memory", "agent")
+    workflow.add_edge("memory", "classify_intent")
+
+    # Route based on intent classification
+    workflow.add_conditional_edges(
+        "classify_intent",
+        route_after_intent,
+        {
+            "direct_response": "direct_response",
+            "agent": "agent",
+        },
+    )
+
+    # Direct response intents skip the agent and go straight to save_memory
+    workflow.add_edge("direct_response", "save_memory")
 
     workflow.add_conditional_edges(
         "agent",
