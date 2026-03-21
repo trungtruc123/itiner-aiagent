@@ -1,7 +1,7 @@
 # ─── Regex / keyword patterns ───────────────────────────────────────────────
 
 GREETING_PATTERNS = [
-    r"\b(hi|hello|hey|xin chao|chao bot|hi bot|xin chào|chào|chào bạn|chào anh|chào chị|helu|helo|alo)\b",
+    r"\b(hi|hello|helo|helllo|hey|chao|chaof|xin chao|chao bot|hi bot|xin chào|chào|chào bạn|chào anh|chào chị|helu|helo|alo)\b",
     r"^(hi|hello|hey|chào)[\s!.,]*$",
 ]
 
@@ -17,6 +17,6 @@ PRAISE_PATTERNS = [
 ]
 
 CRITICISM_PATTERNS = [
-    r"\b(cùi|te|tệ|dot|dốt|ngu|gà|ga|dở|kém|chán|tồi|bad|terrible|awful|horrible|worst|sai|không tốt|không hay|không giỏi)\b",
+    r"\b(cùi|te|tệ|dot|dốt|ngu|gà|gaf|ga|dở|kém|chán|tồi|bad|terrible|awful|horrible|worst|sai|không tốt|không hay|không giỏi)\b",
     r"\b(bạn tệ|bạn dở|bạn kém|quá tệ|quá dở|quá kém|rất tệ|rất dở|như cứt|như c|như cc|quá gà|quá tệ|bot te qa|qa ga|non qua|non qa|tệ qá|dở quá|cùi qá|bot te|bot dở|bot ngu|bot gà|bot cùi)\b",
 ]
