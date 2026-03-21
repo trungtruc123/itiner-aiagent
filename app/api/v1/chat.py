@@ -50,13 +50,13 @@ async def send_message(
         await db.flush()
 
     # Save user message
-    user_msg = ChatMessage(
-        session_id=session.id,
-        role="user",
-        content=body.message,
-    )
-    db.add(user_msg)
-    await db.flush()
+    # user_msg = ChatMessage(
+    #     session_id=session.id,
+    #     role="user",
+    #     content=body.message,
+    # )
+    # db.add(user_msg)
+    # await db.flush()
 
     # Run the LangGraph agent
     try:
@@ -68,8 +68,7 @@ async def send_message(
         history_result = await db.execute(
             select(ChatMessage)
             .where(
-                ChatMessage.session_id == session.id,
-                ChatMessage.id != user_msg.id,  # exclude current message, added below
+                ChatMessage.session_id == session.id
             )
             .order_by(ChatMessage.created_at.asc())
         )
@@ -131,13 +130,13 @@ async def send_message(
             db.add(booking)
 
         # Save assistant message
-        if ai_content:
-            assistant_msg = ChatMessage(
-                session_id=session.id,
-                role="assistant",
-                content=ai_content,
-            )
-            db.add(assistant_msg)
+        # if ai_content:
+        #     assistant_msg = ChatMessage(
+        #         session_id=session.id,
+        #         role="assistant",
+        #         content=ai_content,
+        #     )
+        #     db.add(assistant_msg)
 
         # Update session timestamp
         session.updated_at = datetime.utcnow()
